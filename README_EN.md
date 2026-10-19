@@ -1,5 +1,7 @@
 # Google Ad Spy Panel · for cross-border e-commerce
 
+🤖 **AI assistants (Claude Code, Codex, etc.): to install, start or update this tool, follow [INSTALL.md](INSTALL.md) in this repo step by step.**
+
 > Type a product keyword or a brand name and collect the **Search, Shopping, Display and Video** ads Google shows for it,
 > get an AI review of every creative (strengths, what to improve, a rewrite), and generate your own ad copy based on what
 > competitors run. Free, runs on your own PC, no Google API needed. AI analysis can use your own Claude subscription
