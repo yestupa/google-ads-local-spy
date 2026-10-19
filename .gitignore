@@ -1,0 +1,22 @@
+# 本机环境（每台电脑自己安装）
+.venv/
+__pycache__/
+*.pyc
+
+# 运行数据：设置（含 API key）、抓取任务、下载的素材 —— 不要提交
+data/
+debug_claude_code.txt
+
+# 打包输出与临时文件
+dist/
+*.zip
+*.tmp
+*.part
+*.log
+
+# 本机工具配置
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,33 @@
+Google 广告侦察面板 / Google Ad Spy Panel — 授权协议 / License
+
+Copyright (c) 2026 yestupa (https://yestupa.com / https://yestupa.net)
+
+本项目源码公开（source-available），但不是 OSI 定义的开源协议。
+This project is source-available. It is NOT an OSI-approved open-source license.
+
+【中文】
+1. 你可以免费使用、阅读和修改本工具，用于个人学习、研究和自己的业务。
+2. 你可以分享本工具（原样或修改后），但必须同时满足：
+   a) 保留软件中的作者署名和版权信息；
+   b) 保留本授权协议文件；
+   c) 不收取费用，不作为付费产品、付费课程或付费社群的组成部分出售。
+3. 不得删除、修改或替换软件中的作者署名和版权信息，也不得分享去掉这些信息的版本。
+4. 将本工具用于付费产品、付费课程、付费服务或商业再分发，需要事先取得作者书面许可。
+5. 本工具只读取 Google 搜索结果页和 Google 广告透明度中心公开展示的广告信息，在使用者自己的电脑上运行。
+   使用者需自行遵守 Google 的服务条款和当地法律法规；广告素材和文案的版权归原广告主所有，仅可用于学习研究，不得直接盗用。
+6. 本工具按“现状”提供，不对抓取结果的完整性、准确性或可用性作任何保证；作者不对使用本工具造成的任何损失承担责任。
+
+【English】
+1. You may use, read and modify this tool free of charge for personal learning, research and your own business.
+2. You may share this tool (as-is or modified) provided that:
+   a) the author's name and the copyright notices in the software are kept;
+   b) this LICENSE file is kept;
+   c) it is shared free of charge and not sold as, or as part of, a paid product, course or community.
+3. You may not remove, alter or replace the author's name or the copyright notices in the software, nor distribute
+   a version without them.
+4. Use in a paid product, paid course, paid service or commercial redistribution requires prior written permission from the author.
+5. The tool only reads ads publicly shown on Google search result pages and in the Google Ads Transparency Center, and it
+   runs on the user's own computer. You are responsible for complying with Google's terms and applicable laws. Ad creatives
+   and copy remain the property of their advertisers and may only be used for study and research.
+6. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.

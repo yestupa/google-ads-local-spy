@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Google 广告侦察面板</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><i>Ads</i>Google 广告侦察面板</div>
+  <div class="actions">
+    <button class="btn ghost" id="btnCheck">环境检查</button>
+    <button class="btn ghost" id="btnSettings">设置</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="side">
+    <form class="card pad" id="searchForm">
+      <h3>输入关键词开始抓取</h3>
+      <div class="field"><input class="kw" type="text" id="kw" placeholder="产品词或品牌词，例如 colored contacts" autocomplete="off"></div>
+      <div class="field"><label>投放地区（广告按访问者 IP 地区投放，请把代理切到这个国家）</label><select id="region"></select></div>
+      <div class="field"><label>抓取类型</label>
+        <div class="checks">
+          <label><input type="checkbox" id="tSearch" checked>搜索广告</label>
+          <label><input type="checkbox" id="tShopping" checked>购物广告</label>
+          <label><input type="checkbox" id="tDisplay" checked>展示广告</label>
+          <label><input type="checkbox" id="tVideo" checked>视频广告</label>
+        </div>
+      </div>
+      <div class="field"><label>展示/视频广告的目标网站（可选）</label><input type="text" id="targetDomain" placeholder="留空 = 自动用搜索结果页上的第一个网站"></div>
+      <div class="hint">Google 广告透明度中心<b>不能按关键词搜素材</b>，只能按网站查。所以展示广告和视频广告会以 Google 搜索结果页上的<b>第一个网站</b>为目标去抓：优先第一条搜索广告，其次第一条购物广告，都没有就用第一条自然结果；这个网站在透明度中心查不到广告时，会自动顺延到下一个。想看特定竞对，就在上面填它的域名，例如 hottopic.com。</div>
+      <label class="checks" style="grid-template-columns:1fr;margin-bottom:8px"><span><input type="checkbox" id="optAnalyze" checked> 抓完自动 AI 分析（引擎在“设置”里选）</span></label>
+      <details class="adv"><summary>数量上限</summary>
+        <div class="row3">
+          <div class="field"><label>搜索页数</label><input type="number" id="serpPages" min="1" max="10"></div>
+          <div class="field"><label>展示广告</label><input type="number" id="maxDisp" min="0" max="40"></div>
+          <div class="field"><label>视频广告</label><input type="number" id="maxVid" min="0" max="15"></div>
+        </div>
+      </details>
+      <button class="btn primary" style="width:100%;padding:10px" type="submit">开始抓取</button>
+    </form>
+    <div class="card pad">
+      <h3>历史任务</h3>
+      <div class="jobs" id="jobs"></div>
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<div class="modal" id="settingsModal"><div class="card">
+  <h2>设置</h2>
+  <div class="field"><label>AI 分析引擎</label><select id="sEngine"></select></div>
+  <div id="ccBox">
+    <div class="hint">需要先安装 Claude Code，并在终端运行 <code>claude</code> 后输入 <code>/login</code> 登录你的 Claude 订阅（Pro / Max）。分析会占用订阅额度。</div>
+    <div class="field"><label>Claude Code 使用的模型</label><select id="sCcModel"></select></div>
+  </div>
+  <div id="apiBox">
+    <div class="field"><label>Claude API key</label><input type="password" id="sKey" placeholder="sk-ant-..."></div>
+    <div class="hint">只保存在本机 data/settings.json，不会上传。申请地址：console.anthropic.com</div>
+    <div class="field"><label>分析模型</label><select id="sModel"></select></div>
+    <div class="field"><label>分析深度</label><select id="sEffort"><option value="low">低（快、省）</option><option value="medium">中（推荐）</option><option value="high">高（细、贵）</option></select></div>
+  </div>
+  <div class="field"><label>浏览器</label><select id="sBrowser"><option value="auto">自动（Chrome → Edge → 内置）</option><option value="chrome">Google Chrome</option><option value="msedge">Microsoft Edge</option><option value="chromium">内置 Chromium（容易被 Google 拦截）</option></select></div>
+  <div class="field"><label>代理地址（可选）</label><input type="text" id="sProxy" placeholder="例如 http://127.0.0.1:7890 ；留空使用系统代理"></div>
+  <label class="checks" style="grid-template-columns:1fr;margin-bottom:6px"><span><input type="checkbox" id="sManual"> 遇到 Google 人机验证时，弹出窗口让我手动完成</span></label>
+  <label class="checks" style="grid-template-columns:1fr;margin-bottom:10px"><span><input type="checkbox" id="sShow"> 抓取时显示浏览器窗口（调试用）</span></label>
+  <div class="field"><label>每条视频最多播放并截图（秒）</label><input type="number" id="sVsec" min="10" max="120"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    <button class="btn" id="sCancel">取消</button><button class="btn primary" id="sSave">保存</button>
+  </div>
+</div></div>
+<footer id="yestupa-wm" class="wm">made by <a href="https://yestupa.com" target="_blank" rel="noopener">yestupa.com</a>/<a href="https://yestupa.net" target="_blank" rel="noopener">yestupa.net</a> with ❤️</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
