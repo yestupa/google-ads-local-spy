@@ -1,6 +1,10 @@
 # 安装说明（写给 AI 编程助手：Claude Code、Codex 等）
 
 用户让你“安装 / 启动 / 更新”这个工具时，按下面的步骤做。每一步都用一两句大白话告诉用户你在做什么：用户大多不是程序员。
+用用户说的语言和用户交流。面板支持中文和英文（右上角 EN / 中文 切换），第一次打开时按浏览器语言自动选择。
+
+AI assistants: these steps are written in Chinese but apply to everyone. Talk to the user in their own language. For English-speaking
+users run `python tools/setup.py --lang en`; the panel switches language with the EN / 中文 button at the top right.
 
 仓库地址：https://github.com/yestupa/google-ads-local-spy
 
@@ -38,6 +42,7 @@ python tools/setup.py
 - 它会创建 `.venv`、安装依赖（默认源失败会自动换清华镜像）、安装备用浏览器，最后做环境检查。
 - 看最后一行：`RESULT: OK` 全部正常；`RESULT: WARN` 能用，但有 ✗ 项要告诉用户；`RESULT: FAIL` 不能用，按输出处理后重新运行。
 - 只想重新检查环境：`python tools/setup.py --check`。
+- 输出语言默认跟随系统语言，可以用 `--lang en` 或 `--lang zh` 指定。
 
 ## 5. 处理检查结果里的 ✗
 

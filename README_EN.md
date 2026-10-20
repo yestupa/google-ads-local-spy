@@ -7,7 +7,9 @@
 > competitors run. Free, runs on your own PC, no Google API needed. AI analysis can use your own Claude subscription
 > through Claude Code, so no API key is needed.
 
-[中文说明](README.md) · Author: Mr. Tupa ([yestupa.com](https://yestupa.com))
+[中文](README.md) · **English** · Author: Mr. Tupa ([yestupa.com](https://yestupa.com))
+
+The panel has an **English / 中文** interface: switch with the button at the top right. AI analysis is written in the selected language.
 
 ## Install with an AI assistant
 
@@ -17,9 +19,13 @@ If you use [Claude Code](https://claude.com/claude-code) or Codex, just tell it:
 Install and start this tool: https://github.com/yestupa/google-ads-local-spy (follow INSTALL.md in the repo)
 ```
 
-![Summary](docs/screenshots/01-summary.png)
+![Search ads: every field Google shows](docs/screenshots/en-02-search-table.png)
 
-> The panel UI is in Simplified Chinese.
+| Shopping ads | Setup check |
+|---|---|
+| ![Shopping ads](docs/screenshots/en-03-shopping.png) | ![Setup check](docs/screenshots/en-01-setup.png) |
+
+<sub>Ad images and video frames in the screenshots are blurred.</sub>
 
 ## What it does
 
@@ -43,11 +49,11 @@ Install and start this tool: https://github.com/yestupa/google-ads-local-spy (fo
 
 1. Install **Python 3.10+** (tick *Add python.exe to PATH*) and Google Chrome. You need a network that can reach google.com;
    ads are served by the visitor's IP country.
-2. Double-click `1-安装.bat` (install, once).
-3. Double-click `2-启动面板.bat` (start). The panel opens at http://127.0.0.1:8765.
+2. Double-click `1-安装.bat` (“install”, once). Or run `python tools/setup.py --lang en`.
+3. Double-click `2-启动面板.bat` (“start panel”). The panel opens at http://127.0.0.1:8765. Click **EN** at the top right if it opens in Chinese.
 4. Optional AI: install [Claude Code](https://claude.com/claude-code) and log in (`claude` → `/login`), or paste a Claude API key in Settings.
 
-macOS: run `mac-安装.command`, then `mac-启动面板.command`.
+macOS: run `mac-安装.command` (install), then `mac-启动面板.command` (start panel).
 
 ## Notes
 

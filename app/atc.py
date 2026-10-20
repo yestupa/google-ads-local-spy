@@ -7,6 +7,7 @@ import os
 import re
 
 from .util import download, registrable
+from .i18n import L
 
 HOME = 'https://adstransparency.google.com/?region={r}'
 CREATIVE = 'https://adstransparency.google.com/advertiser/{a}/creative/{c}?region={r}'
@@ -91,19 +92,19 @@ class ATC:
             try:
                 got = self.search({'domain': dom}, None, 5)
             except Exception as e:
-                notes.append(f'{dom}：查询失败（{e}）')
+                notes.append(L(f'{dom}：查询失败（{e}）', f'{dom}: lookup failed ({e})'))
                 continue
             if not got:
-                notes.append(f'{dom}：透明度中心在该地区没有找到这个网域的广告')
+                notes.append(L(f'{dom}：透明度中心在该地区没有找到这个网域的广告', f'{dom}: no ads for this domain in this region'))
                 continue
             names = sorted({g.get('12') for g in got if g.get('12')})
-            sources.append({'type': 'domain', 'value': dom, 'label': dom, 'advertisers': names, 'from': '搜索结果页广告'})
+            sources.append({'type': 'domain', 'value': dom, 'label': dom, 'advertisers': names, 'from': L('搜索结果页广告', 'ad on the results page')})
         if len(sources) < max_sources:
             try:
                 advs, doms = self.suggestions(keyword)
             except Exception as e:
                 advs, doms = [], []
-                notes.append(f'名称联想查询失败（{e}）')
+                notes.append(L(f'名称联想查询失败（{e}）', f'name suggestion lookup failed ({e})'))
             tokens = [t for t in re.split(r'\W+', keyword.lower()) if len(t) >= 3]
             for d in doms:
                 if len(sources) >= max_sources:
@@ -111,7 +112,7 @@ class ATC:
                 dom = registrable(d)
                 if dom not in seen and any(t in dom for t in tokens):
                     seen.add(dom)
-                    sources.append({'type': 'domain', 'value': dom, 'label': dom, 'advertisers': [], 'from': '透明度中心联想（网域）'})
+                    sources.append({'type': 'domain', 'value': dom, 'label': dom, 'advertisers': [], 'from': L('透明度中心联想（网域）', 'Transparency Center suggestion (domain)')})
             # 名称联想噪音较大：只要名称包含关键词、且广告数较多的广告主
             advs = [a for a in advs if any(t in (a['name'] or '').lower() for t in tokens) and a['adsMax'] >= 20]
             advs.sort(key=lambda a: -a['adsMax'])
@@ -119,7 +120,7 @@ class ATC:
                 if len(sources) >= max_sources:
                     break
                 sources.append({'type': 'advertiser', 'value': a['id'], 'label': a['name'], 'advertisers': [a['name']],
-                                'from': f'透明度中心联想（广告主，约 {a["adsMin"]}–{a["adsMax"]} 条广告，注册地 {a["country"]}）'})
+                                'from': L(f'透明度中心联想（广告主，约 {a["adsMin"]}–{a["adsMax"]} 条广告，注册地 {a["country"]}）', f'Transparency Center suggestion (advertiser, about {a["adsMin"]}–{a["adsMax"]} ads, based in {a["country"]})')})
         return sources, notes
 
     def creatives(self, sources, fmt, limit, window=None):
@@ -131,7 +132,7 @@ class ATC:
             try:
                 rows = self.search(flt, fmt, per, window)
             except Exception as e:
-                self.log(f'  {s["label"]} 取素材失败：{e}')
+                self.log(f'  {s["label"]} ' + L('取素材失败：', 'failed to get creatives: ') + str(e))
                 continue
             for r in rows:
                 if r.get('2') in seen:
@@ -175,11 +176,13 @@ class ATC:
     def creatives_recent(self, sources, fmt, limit, today=None):
         """先取“昨天”展示过的广告；昨天没有，再放宽到“过去 7 天”。返回 (列表, 时间段说明, 是否放宽过)。"""
         today = today or datetime.date.today()
-        windows = [('昨天', (today - datetime.timedelta(days=1), today)),
-                   ('过去 7 天', (today - datetime.timedelta(days=7), today))]
-        for i, (name, w) in enumerate(windows):
+        windows = [(1, (today - datetime.timedelta(days=1), today)),
+                   (7, (today - datetime.timedelta(days=7), today))]
+        for i, (days, w) in enumerate(windows):
             items = self.creatives(sources, fmt, limit, w)
-            label = f'{name}（{w[0]:%Y-%m-%d}' + ('）' if name == '昨天' else f' 至 {w[1] - datetime.timedelta(days=1):%Y-%m-%d}）')
+            end = w[1] - datetime.timedelta(days=1)
+            label = L(f'昨天（{w[0]:%Y-%m-%d}）', f'yesterday ({w[0]:%Y-%m-%d})') if days == 1 else \
+                L(f'过去 7 天（{w[0]:%Y-%m-%d} 至 {end:%Y-%m-%d}）', f'last 7 days ({w[0]:%Y-%m-%d} to {end:%Y-%m-%d})')
             if items:
                 for it in items:
                     it['window'] = label
@@ -247,13 +250,13 @@ class ATC:
             from PIL import Image
             im = Image.open(path)
             if im.width < 10 or im.height < 10:
-                item['imageNote'] = 'Google 已删除这条广告的原始图片'
+                item['imageNote'] = L('Google 已删除这条广告的原始图片', 'Google has removed the original image of this ad')
                 os.remove(path)
                 return None
             im.convert('RGB').save(path, 'JPEG', quality=88)
             return path
         except Exception as e:
-            item['imageNote'] = 'Google 已删除这条广告的原始图片' if '404' in str(e) else f'原始图片下载失败：{str(e)[:60]}'
+            item['imageNote'] = L('Google 已删除这条广告的原始图片', 'Google has removed the original image of this ad') if '404' in str(e) else L('原始图片下载失败：', 'Original image download failed: ') + str(e)[:60]
             if os.path.exists(path):
                 os.remove(path)
             return None

@@ -3,6 +3,8 @@ import json
 import os
 import threading
 
+from .i18n import L
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data')
 JOBS = os.path.join(DATA, 'jobs')
@@ -12,24 +14,33 @@ WEB = os.path.join(ROOT, 'app', 'web')
 
 # Google 广告透明度中心的地区代码（Google Ads 地理位置 ID）
 REGIONS = {
-    'US': ('美国', 2840), 'GB': ('英国', 2826), 'CA': ('加拿大', 2124), 'AU': ('澳大利亚', 2036),
-    'DE': ('德国', 2276), 'FR': ('法国', 2250), 'IT': ('意大利', 2380), 'ES': ('西班牙', 2724),
-    'NL': ('荷兰', 2528), 'JP': ('日本', 2392), 'SG': ('新加坡', 2702), 'AE': ('阿联酋', 2784),
-    'BR': ('巴西', 2076), 'MX': ('墨西哥', 2484), 'IN': ('印度', 2356),
+    'US': ('美国', 'United States', 2840), 'GB': ('英国', 'United Kingdom', 2826), 'CA': ('加拿大', 'Canada', 2124),
+    'AU': ('澳大利亚', 'Australia', 2036), 'DE': ('德国', 'Germany', 2276), 'FR': ('法国', 'France', 2250),
+    'IT': ('意大利', 'Italy', 2380), 'ES': ('西班牙', 'Spain', 2724), 'NL': ('荷兰', 'Netherlands', 2528),
+    'JP': ('日本', 'Japan', 2392), 'SG': ('新加坡', 'Singapore', 2702), 'AE': ('阿联酋', 'UAE', 2784),
+    'BR': ('巴西', 'Brazil', 2076), 'MX': ('墨西哥', 'Mexico', 2484), 'IN': ('印度', 'India', 2356),
 }
 
-MODELS = {
-    'claude-opus-5-5': 'Claude Opus 5.5（分析最细，较贵）',
-    'claude-sonnet-5-5': 'Claude Sonnet 5.5（推荐，性价比高）',
-    'claude-haiku-5-5': 'Claude Haiku 5.5（最便宜，分析较浅）',
-}
 
-ENGINES = {
-    'claude_code': 'Claude Code（用你的 Claude 订阅，不需要 API key）',
-    'api': 'Claude API（需要 API key，按量付费）',
-    'none': '不做 AI 分析（只抓取）',
-}
-CC_MODELS = {'sonnet': 'Sonnet（推荐）', 'opus': 'Opus（分析更细，更耗额度）', 'haiku': 'Haiku（最快、最省额度）'}
+def models():
+    return {
+        'claude-opus-5-5': L('Claude Opus 5.5（分析最细，较贵）', 'Claude Opus 5.5 (most detailed, pricier)'),
+        'claude-sonnet-5-5': L('Claude Sonnet 5.5（推荐，性价比高）', 'Claude Sonnet 5.5 (recommended, best value)'),
+        'claude-haiku-5-5': L('Claude Haiku 5.5（最便宜，分析较浅）', 'Claude Haiku 5.5 (cheapest, lighter analysis)'),
+    }
+
+
+def engines():
+    return {
+        'claude_code': L('Claude Code（用你的 Claude 订阅，不需要 API key）', 'Claude Code (uses your Claude subscription, no API key)'),
+        'api': L('Claude API（需要 API key，按量付费）', 'Claude API (needs an API key, pay as you go)'),
+        'none': L('不做 AI 分析（只抓取）', 'No AI analysis (collect only)'),
+    }
+
+
+def cc_models():
+    return {'sonnet': L('Sonnet（推荐）', 'Sonnet (recommended)'), 'opus': L('Opus（分析更细，更耗额度）', 'Opus (more detailed, uses more quota)'),
+            'haiku': L('Haiku（最快、最省额度）', 'Haiku (fastest, least quota)')}
 
 DEFAULTS = {
     'engine': 'claude_code',
@@ -49,6 +60,7 @@ DEFAULTS = {
     'max_video': 6,
     'video_seconds': 30,        # 每条视频最多播放并截图多少秒
     'auto_analyze': True,
+    'ui_lang': '',              # 界面语言：zh / en；留空时按浏览器语言自动选
 }
 
 _lock = threading.Lock()
@@ -103,12 +115,12 @@ def public_settings():
     key = s.get('api_key') or ''
     s['api_key'] = ('••••••••' + key[-4:]) if key else ''
     s['has_api_key'] = bool(key)
-    s['regions'] = {k: v[0] for k, v in REGIONS.items()}
-    s['models'] = MODELS
-    s['engines'] = ENGINES
-    s['cc_models'] = CC_MODELS
+    s['regions'] = {k: L(v[0], v[1]) for k, v in REGIONS.items()}
+    s['models'] = models()
+    s['engines'] = engines()
+    s['cc_models'] = cc_models()
     return s
 
 
 def region_code(region):
-    return REGIONS.get(region, REGIONS['US'])[1]
+    return REGIONS.get(region, REGIONS['US'])[2]

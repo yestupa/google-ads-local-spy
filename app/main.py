@@ -12,6 +12,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import config
+from .i18n import L, lang, set_lang
 from .jobs import Manager
 
 PORT = int(os.environ.get('ADSPY_PORT', '8765'))
@@ -21,12 +22,13 @@ manager = None
 def env_check():
     s = config.load_settings()
     out = []
-    out.append({'name': 'Python', 'ok': sys.version_info >= (3, 10), 'detail': sys.version.split()[0] + ('' if sys.version_info >= (3, 10) else '（需要 3.10 或更高）')})
+    out.append({'key': 'python', 'name': 'Python', 'ok': sys.version_info >= (3, 10),
+                'detail': sys.version.split()[0] + ('' if sys.version_info >= (3, 10) else L('（需要 3.10 或更高）', ' (3.10 or newer required)'))})
     try:
         import playwright  # noqa
-        out.append({'name': 'Playwright', 'ok': True, 'detail': '已安装'})
+        out.append({'key': 'playwright', 'name': 'Playwright', 'ok': True, 'detail': L('已安装', 'installed')})
     except ImportError:
-        out.append({'name': 'Playwright', 'ok': False, 'detail': '未安装，请先运行“1-安装”'})
+        out.append({'key': 'playwright', 'name': 'Playwright', 'ok': False, 'detail': L('未安装，请先运行“1-安装”', 'not installed; run the installer (1-安装.bat) first')})
     found = []
     candidates = {
         'Chrome': [r'C:\Program Files\Google\Chrome\Application\chrome.exe', r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
@@ -37,23 +39,27 @@ def env_check():
     for name, paths in candidates.items():
         if any(os.path.exists(p) for p in paths) or shutil.which(name.lower()):
             found.append(name)
-    out.append({'name': '浏览器', 'ok': bool(found), 'detail': '、'.join(found) if found else '没找到 Chrome 或 Edge（Google 会拦截内置浏览器，强烈建议安装 Chrome）'})
+    out.append({'key': 'browser', 'name': L('浏览器', 'Browser'), 'ok': bool(found), 'detail': L('、', ', ').join(found) if found else
+                L('没找到 Chrome 或 Edge（Google 会拦截内置浏览器，强烈建议安装 Chrome）', 'Chrome or Edge not found (Google blocks the bundled browser; please install Chrome)')})
     from .analyze import system_proxy
     proxy = s.get('proxy') or system_proxy()
     try:
         h = [urllib.request.ProxyHandler({'http': proxy, 'https': proxy})] if proxy else []
         urllib.request.build_opener(*h).open(urllib.request.Request('https://www.google.com/generate_204', headers={'User-Agent': 'Mozilla/5.0'}), timeout=8)
-        out.append({'name': '访问 Google', 'ok': True, 'detail': '正常' + (f'（代理 {proxy}）' if proxy else '')})
+        out.append({'key': 'google', 'name': L('访问 Google', 'Google access'), 'ok': True, 'detail': L('正常', 'OK') + (L(f'（代理 {proxy}）', f' (proxy {proxy})') if proxy else '')})
     except Exception as e:
-        out.append({'name': '访问 Google', 'ok': False, 'detail': f'失败：{str(e)[:80]}。请开启代理/VPN，或在设置里填写代理地址'})
+        out.append({'key': 'google', 'name': L('访问 Google', 'Google access'), 'ok': False,
+                    'detail': L(f'失败：{str(e)[:80]}。请开启代理/VPN，或在设置里填写代理地址', f'failed: {str(e)[:80]}. Turn on your proxy/VPN, or set a proxy in Settings')})
     engine = s.get('engine') or 'claude_code'
     if engine == 'claude_code':
         ok, detail = claude_status_cached()
-        out.append({'name': 'AI 分析：Claude Code', 'ok': ok, 'detail': detail + ('' if ok else '（不影响抓取，只是没有 AI 分析）')})
+        out.append({'key': 'ai', 'name': L('AI 分析：Claude Code', 'AI analysis: Claude Code'), 'ok': ok,
+                    'detail': detail + ('' if ok else L('（不影响抓取，只是没有 AI 分析）', ' (collecting still works, just without AI analysis)'))})
     elif engine == 'api':
-        out.append({'name': 'AI 分析：Claude API', 'ok': bool(s.get('api_key')), 'detail': '已填写 API key' if s.get('api_key') else '未填写 API key（不影响抓取，只是没有 AI 分析）'})
+        out.append({'key': 'ai', 'name': L('AI 分析：Claude API', 'AI analysis: Claude API'), 'ok': bool(s.get('api_key')),
+                    'detail': L('已填写 API key', 'API key set') if s.get('api_key') else L('未填写 API key（不影响抓取，只是没有 AI 分析）', 'no API key (collecting still works, just without AI analysis)')})
     else:
-        out.append({'name': 'AI 分析', 'ok': True, 'detail': '已关闭（只抓取）'})
+        out.append({'key': 'ai', 'name': L('AI 分析', 'AI analysis'), 'ok': True, 'detail': L('已关闭（只抓取）', 'off (collect only)')})
     return out
 
 
@@ -90,11 +96,16 @@ def export_report(job):
     js = open(os.path.join(web, 'app.js'), encoding='utf-8').read()
     data = json.dumps(job, ensure_ascii=False).replace('</', '<\\/')
     html = html.replace('<link rel="stylesheet" href="/static/style.css">', f'<style>{css}</style>')
-    html = html.replace('<script src="/static/app.js"></script>', f'<script>window.STATIC_JOB = {data};</script><script>{js}</script>')
-    path = os.path.join(config.JOBS, job['id'], '报告.html')
+    html = html.replace('<script src="/static/app.js"></script>', f'<script>window.STATIC_JOB = {data}; window.STATIC_LANG = "{lang()}";</script><script>{js}</script>')
+    path = os.path.join(config.JOBS, job['id'], L('报告.html', 'report.html'))
     with open(path, 'w', encoding='utf-8') as f:
         f.write(with_watermark(html))
     return path
+
+
+def pos_name(p):
+    """搜索广告位置在数据里存的是“顶部/底部”，导出时按界面语言显示。"""
+    return {'顶部': L('顶部', 'Top'), '底部': L('底部', 'Bottom')}.get(p, p)
 
 
 def export_csv(job):
@@ -103,23 +114,25 @@ def export_csv(job):
     r = job.get('results', {})
     j = lambda xs: ' | '.join(xs or [])
     sheets = {
-        '搜索广告.csv': (r.get('search') or [], [
-            ('页码', lambda a: a.get('page')), ('位置', lambda a: a.get('position')), ('排名', lambda a: a.get('rank')),
-            ('广告主', lambda a: a.get('advertiser')), ('域名', lambda a: a.get('domain')), ('Display URL', lambda a: a.get('displayUrl')),
-            ('Final URL', lambda a: a.get('finalUrl')), ('标题', lambda a: a.get('headline')), ('描述', lambda a: a.get('description')),
-            ('附加链接', lambda a: j(a.get('sitelinks'))), ('促销', lambda a: j(a.get('promos'))), ('运费/退货', lambda a: j(a.get('shipping'))),
-            ('评分', lambda a: a.get('rating')), ('其他附加信息', lambda a: j(a.get('extras'))),
-            ('AI 卖点角度', lambda a: (a.get('analysis') or {}).get('angle')), ('AI 优点', lambda a: j((a.get('analysis') or {}).get('strengths'))),
-            ('AI 可改良', lambda a: j((a.get('analysis') or {}).get('improvements'))), ('AI 改写示例', lambda a: (a.get('analysis') or {}).get('rewrite'))]),
-        '购物广告.csv': (r.get('shopping') or [], [
-            ('页码', lambda p: p.get('page')), ('区块', lambda p: p.get('section')), ('商品标题', lambda p: p.get('title')),
-            ('价格', lambda p: p.get('price')), ('原价', lambda p: p.get('originalPrice')), ('折扣', lambda p: p.get('discount')),
-            ('商家', lambda p: p.get('merchant')), ('域名', lambda p: p.get('domain')), ('评分', lambda p: p.get('rating')),
-            ('促销', lambda p: j(p.get('promos'))), ('运费/退货', lambda p: j(p.get('shipping'))), ('店铺信息', lambda p: p.get('storeInfo')),
-            ('平台', lambda p: p.get('platform')), ('商品ID', lambda p: p.get('productId')), ('Merchant ID', lambda p: p.get('merchantId')),
-            ('Offer ID', lambda p: p.get('offerId')), ('Final URL', lambda p: '（需点击广告才能获得，未获取）'),
-            ('AI 卖点角度', lambda p: (p.get('analysis') or {}).get('angle')), ('AI 优点', lambda p: j((p.get('analysis') or {}).get('strengths'))),
-            ('AI 可改良', lambda p: j((p.get('analysis') or {}).get('improvements'))), ('AI 改写标题', lambda p: (p.get('analysis') or {}).get('rewrite'))]),
+        L('搜索广告.csv', 'search_ads.csv'): (r.get('search') or [], [
+            (L('页码', 'Page'), lambda a: a.get('page')), (L('位置', 'Position'), lambda a: pos_name(a.get('position'))), (L('排名', 'Rank'), lambda a: a.get('rank')),
+            (L('广告主', 'Advertiser'), lambda a: a.get('advertiser')), (L('域名', 'Domain'), lambda a: a.get('domain')), ('Display URL', lambda a: a.get('displayUrl')),
+            ('Final URL', lambda a: a.get('finalUrl')), (L('标题', 'Headline'), lambda a: a.get('headline')), (L('描述', 'Description'), lambda a: a.get('description')),
+            (L('附加链接', 'Sitelinks'), lambda a: j(a.get('sitelinks'))), (L('促销', 'Promotions'), lambda a: j(a.get('promos'))),
+            (L('运费/退货', 'Shipping/returns'), lambda a: j(a.get('shipping'))),
+            (L('评分', 'Rating'), lambda a: a.get('rating')), (L('其他附加信息', 'Other assets'), lambda a: j(a.get('extras'))),
+            (L('AI 卖点角度', 'AI angle'), lambda a: (a.get('analysis') or {}).get('angle')), (L('AI 优点', 'AI strengths'), lambda a: j((a.get('analysis') or {}).get('strengths'))),
+            (L('AI 可改良', 'AI improvements'), lambda a: j((a.get('analysis') or {}).get('improvements'))), (L('AI 改写示例', 'AI rewrite'), lambda a: (a.get('analysis') or {}).get('rewrite'))]),
+        L('购物广告.csv', 'shopping_ads.csv'): (r.get('shopping') or [], [
+            (L('页码', 'Page'), lambda p: p.get('page')), (L('区块', 'Section'), lambda p: p.get('section')), (L('商品标题', 'Product title'), lambda p: p.get('title')),
+            (L('价格', 'Price'), lambda p: p.get('price')), (L('原价', 'Original price'), lambda p: p.get('originalPrice')), (L('折扣', 'Discount'), lambda p: p.get('discount')),
+            (L('商家', 'Merchant'), lambda p: p.get('merchant')), (L('域名', 'Domain'), lambda p: p.get('domain')), (L('评分', 'Rating'), lambda p: p.get('rating')),
+            (L('促销', 'Promotions'), lambda p: j(p.get('promos'))), (L('运费/退货', 'Shipping/returns'), lambda p: j(p.get('shipping'))),
+            (L('店铺信息', 'Store info'), lambda p: p.get('storeInfo')),
+            (L('平台', 'Platform'), lambda p: p.get('platform')), (L('商品ID', 'Product ID'), lambda p: p.get('productId')), ('Merchant ID', lambda p: p.get('merchantId')),
+            ('Offer ID', lambda p: p.get('offerId')), ('Final URL', lambda p: L('（需点击广告才能获得，未获取）', '(only available by clicking the ad; not collected)')),
+            (L('AI 卖点角度', 'AI angle'), lambda p: (p.get('analysis') or {}).get('angle')), (L('AI 优点', 'AI strengths'), lambda p: j((p.get('analysis') or {}).get('strengths'))),
+            (L('AI 可改良', 'AI improvements'), lambda p: j((p.get('analysis') or {}).get('improvements'))), (L('AI 改写标题', 'AI rewritten title'), lambda p: (p.get('analysis') or {}).get('rewrite'))]),
     }
     out = []
     for name, (rows, cols) in sheets.items():
@@ -146,17 +159,17 @@ def export_copy_csv(job):
     site = (entry['brief'].get('website') or '').strip()
     url = site if site.startswith('http') else (f'https://{site}' if site else '')
     row = ['', '', 'Responsive search ad'] + hs + [''] * (15 - len(hs)) + ds + [''] * (4 - len(ds)) + [s.get('path1', ''), s.get('path2', ''), url]
-    path = os.path.join(config.JOBS, job['id'], '我方文案_搜索广告.csv')
+    path = os.path.join(config.JOBS, job['id'], L('我方文案_搜索广告.csv', 'my_copy_search_ads.csv'))
     with open(path, 'w', encoding='utf-8-sig', newline='') as f:
         w = csv.writer(f)
         w.writerow(cols)
         w.writerow(row)
         w.writerow([])
-        w.writerow(['附加链接', '描述 1', '描述 2'])
+        w.writerow([L('附加链接', 'Sitelink'), L('描述 1', 'Description 1'), L('描述 2', 'Description 2')])
         for sl in s.get('sitelinks') or []:
             w.writerow([sl.get('text'), sl.get('desc1'), sl.get('desc2')])
         w.writerow([])
-        w.writerow(['宣传信息'] + (s.get('callouts') or []))
+        w.writerow([L('宣传信息', 'Callouts')] + (s.get('callouts') or []))
     return path
 
 
@@ -223,6 +236,7 @@ class Handler(BaseHTTPRequestHandler):
         return p if p.startswith(os.path.realpath(base) + os.sep) else None
 
     def do_GET(self):
+        set_lang(config.load_settings().get('ui_lang'))
         u = urllib.parse.urlparse(self.path)
         parts = [urllib.parse.unquote(x) for x in u.path.strip('/').split('/') if x]
         if not parts:
@@ -254,29 +268,33 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 2:
                 return self._json(manager.list())
             j = manager.get(parts[2])
-            return self._json(j) if j else self._json({'error': '任务不存在'}, 404)
+            return self._json(j) if j else self._json({'error': L('任务不存在', 'Job not found')}, 404)
         return self._json({'error': 'not found'}, 404)
 
     def do_POST(self):
+        set_lang(config.load_settings().get('ui_lang'))
         u = urllib.parse.urlparse(self.path)
         parts = [urllib.parse.unquote(x) for x in u.path.strip('/').split('/') if x]
         body = self._body()
         if parts[:2] == ['api', 'settings']:
-            config.save_settings(body)
+            s = config.save_settings(body)
+            if 'ui_lang' in body:
+                set_lang(s.get('ui_lang'))
+                _cc_cache['v'] = None  # 登录状态说明要换语言
             return self._json(config.public_settings())
         if parts[:2] == ['api', 'jobs'] and len(parts) == 2:
             kw = (body.get('keyword') or '').strip()
             if not kw:
-                return self._json({'error': '请输入关键词'}, 400)
+                return self._json({'error': L('请输入关键词', 'Please enter a keyword')}, 400)
             return self._json(manager.create(kw, body.get('options') or {}))
         if parts[:2] == ['api', 'jobs'] and len(parts) == 4:
             jid, action = parts[2], parts[3]
             j = manager.get(jid)
             if not j:
-                return self._json({'error': '任务不存在'}, 404)
+                return self._json({'error': L('任务不存在', 'Job not found')}, 404)
             if action == 'analyze':
                 r = manager.reanalyze(jid)
-                return self._json(r or {'error': '任务正在运行，稍后再试'}, 200 if r else 409)
+                return self._json(r or {'error': L('任务正在运行，稍后再试', 'The job is running; try again later')}, 200 if r else 409)
             if action == 'cancel':
                 manager.cancel(jid)
                 return self._json({'ok': True})
@@ -293,13 +311,13 @@ class Handler(BaseHTTPRequestHandler):
                 brief = {k: str(v).strip()[:2000] for k, v in (body or {}).items() if k != 'types'}
                 brief['types'] = [t for t in (body or {}).get('types', []) if t in ('search', 'shopping', 'display', 'video')] or ['search']
                 if not brief.get('brand') or not brief.get('product'):
-                    return self._json({'error': '请至少填写品牌名和产品/卖点'}, 400)
+                    return self._json({'error': L('请至少填写品牌名和产品/卖点', 'Please fill in at least the brand and the product/selling points')}, 400)
                 r = manager.copywrite(jid, brief)
                 return self._json(r, 409 if r and r.get('error') else 200)
             if action == 'copycsv':
                 p = export_copy_csv(j)
                 if not p:
-                    return self._json({'error': '还没有生成文案'}, 400)
+                    return self._json({'error': L('还没有生成文案', 'No copy generated yet')}, 400)
                 open_folder(os.path.dirname(p))
                 return self._json({'ok': True, 'path': p})
             if action == 'csv':
@@ -325,12 +343,12 @@ def main():
     try:
         srv = ExclusiveServer(('127.0.0.1', PORT), Handler)
     except OSError:
-        print(f'面板已经在运行（端口 {PORT} 被占用），直接打开：{url}', flush=True)
+        print(f'面板已经在运行（端口 {PORT} 被占用），直接打开 / Panel already running, opening: {url}', flush=True)
         if os.environ.get('ADSPY_NO_BROWSER') != '1':
             webbrowser.open(url)
         return
     manager = Manager()
-    print(f'面板已启动：{url}  （关闭这个窗口即可停止）', flush=True)
+    print(f'面板已启动 / Panel started: {url}\n关闭这个窗口即可停止 / Close this window to stop the panel', flush=True)
     if os.environ.get('ADSPY_NO_BROWSER') != '1':
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:

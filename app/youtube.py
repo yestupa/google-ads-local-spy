@@ -5,6 +5,7 @@
 import os
 
 from .util import download, grid
+from .i18n import L
 
 INFO_JS = """() => {
   const r = window.ytInitialPlayerResponse || {};
@@ -46,7 +47,7 @@ def capture(page, vid, settings, out_dir, rel_dir):
         info = page.evaluate(INFO_JS)
         res.update({k: info.get(k) for k in ('title', 'author', 'lengthSeconds', 'views', 'description', 'hasCaptions', 'captionLangs')})
         if info.get('status') not in (None, 'OK'):
-            res['notes'].append(f'YouTube 无法播放：{info.get("reason") or info.get("status")}')
+            res['notes'].append(L('YouTube 无法播放：', 'YouTube cannot play this video: ') + str(info.get("reason") or info.get("status")))
             raise RuntimeError('unplayable')
         # 打开字幕
         try:
@@ -75,7 +76,7 @@ def capture(page, vid, settings, out_dir, rel_dir):
                 except Exception:
                     pass
                 if waited_ad > 80:
-                    res['notes'].append('视频前有无法跳过的广告，已放弃播放')
+                    res['notes'].append(L('视频前有无法跳过的广告，已放弃播放', 'An unskippable pre-roll ad blocked playback'))
                     break
                 continue
             if st['paused'] and not st['ended']:
@@ -96,12 +97,12 @@ def capture(page, vid, settings, out_dir, rel_dir):
                 break
         page.evaluate("() => { const v = document.querySelector('video'); if (v) v.pause(); }")
         if res.get('lengthSeconds') and res['lengthSeconds'] > limit:
-            res['notes'].append(f'视频时长 {res["lengthSeconds"]} 秒，只截取了前 {limit} 秒（可在设置里调整）')
+            res['notes'].append(L(f'视频时长 {res["lengthSeconds"]} 秒，只截取了前 {limit} 秒（可在设置里调整）', f'The video is {res["lengthSeconds"]}s long; only the first {limit}s were captured (change this in Settings)'))
         if not res['captions']:
-            res['notes'].append('播放期间没有读到字幕（视频可能没有口播或没有自动字幕）')
+            res['notes'].append(L('播放期间没有读到字幕（视频可能没有口播或没有自动字幕）', 'No captions during playback (the video may have no voice-over or no auto captions)'))
     except Exception as e:
         if str(e) != 'unplayable':
-            res['notes'].append(f'播放截图失败：{str(e).splitlines()[0][:120]}')
+            res['notes'].append(L('播放截图失败：', 'Playback capture failed: ') + str(e).splitlines()[0][:120])
     # 合并字幕：YouTube 字幕是两行滚动显示，相邻两次读取会重叠。按词找重叠部分，只保留新出现的词。
     acc, script = [], []
     for c in res['captions']:
@@ -127,7 +128,7 @@ def capture(page, vid, settings, out_dir, rel_dir):
             except Exception:
                 pass
         if res['frames']:
-            res['notes'].append('使用 YouTube 自带的 3 张关键帧缩略图代替播放截图（分辨率较低）')
+            res['notes'].append(L('使用 YouTube 自带的 3 张关键帧缩略图代替播放截图（分辨率较低）', 'Used YouTube’s 3 keyframe thumbnails instead of playback frames (lower resolution)'))
     try:
         download(f'https://i.ytimg.com/vi/{vid}/hqdefault.jpg', os.path.join(out_dir, 'cover.jpg'), settings.get('proxy'), timeout=20)
         res['cover'] = f'{rel_dir}/cover.jpg'

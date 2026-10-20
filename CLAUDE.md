@@ -35,5 +35,6 @@
 - `app/atc.py`：Google 广告透明度中心（展示广告、视频广告）
 - `app/youtube.py`：YouTube 播放截图和字幕
 - `app/analyze.py`：AI 分析（Claude Code 命令行或 Claude API）
+- `app/i18n.py`：界面语言（中文 / English）；后端文字写成 L('中文', 'English')，前端在 app/web/app.js 里同样用 L()
 - `app/web/`：面板前端
 - `data/`：运行数据，包含用户的 API key 和浏览器资料，不要提交或分享

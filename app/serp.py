@@ -6,6 +6,7 @@ import urllib.parse
 
 from . import browser as br
 from .util import host_of, save_data_url, download
+from .i18n import L
 
 EXTRACT_JS = r"""() => {
   const lines = e => (e.innerText || '').split('\n').map(s => s.trim()).filter(Boolean);
@@ -116,14 +117,14 @@ def parse_text_ad(a):
     shipping = [l for l in extras if l not in promos and re.search(r'(?i)(free|shipping|delivery|returns|ships)', l)]
     rating = next((m.group(0).strip() for l in extras for m in [RATING.search(l)] if m), '')
     if not rating and seller:
-        rating = f'{seller.group(1)}（{seller.group(2)} 条评价）'
+        rating = L(f'{seller.group(1)}（{seller.group(2)} 条评价）', f'{seller.group(1)} ({seller.group(2)} reviews)')
     final_url = (a.get('finalUrl') or '').strip()
     domain = host_of(url.split('›')[0].strip()) or host_of(final_url)
     return {
         'position': '顶部' if a['slot'] in ('0', '1', '2') else '底部', 'slot': a['slot'], 'rank': int(a['pos'] or 0),
         'headline': head, 'advertiser': adv, 'displayUrl': url, 'finalUrl': final_url, 'domain': domain,
         'description': desc, 'sitelinks': sitelinks[:8], 'promos': promos, 'shipping': shipping,
-        'rating': rating or ('有卖家评分' if a.get('hasSellerRating') else ''),
+        'rating': rating or (L('有卖家评分', 'has seller rating') if a.get('hasSellerRating') else ''),
         'extras': [l for l in extras if l not in promos and l not in shipping],
     }
 
@@ -143,7 +144,7 @@ def parse_product(it, store=None, store_info=''):
     rating = next((m.group(0).strip() for l in lines for m in [RATING.search(l)] if m), '')
     if not rating:  # 星级是图片时，文字里只有评论数，例如 (81)
         cnt = next((l for l in lines if re.fullmatch(r'\(\s?[\d.,]+[KkMm]?\s?\)', l)), '')
-        rating = f'{cnt.strip("() ")} 条评价' if cnt else ''
+        rating = L(f'{cnt.strip("() ")} 条评价', f'{cnt.strip("() ")} reviews') if cnt else ''
     extras = [l for l in lines if l not in (title, merchant) and not PRICE.fullmatch(l)]
     price, orig = (prices[0] if prices else ''), (prices[1] if len(prices) > 1 else '')
     discount = ''
@@ -171,7 +172,7 @@ def _open(page, url, settings, set_status, log, pno):
     try:
         page.goto(url, wait_until='domcontentloaded', timeout=45000)
     except Exception as e:
-        raise RuntimeError(f'无法打开 Google 搜索第 {pno} 页（{str(e).splitlines()[0][:80]}）。请确认已开启代理/VPN，并能在本机浏览器打开 google.com。')
+        raise RuntimeError(L(f'无法打开 Google 搜索第 {pno} 页（{str(e).splitlines()[0][:80]}）。请确认已开启代理/VPN，并能在本机浏览器打开 google.com。', f'Cannot open Google search page {pno} ({str(e).splitlines()[0][:80]}). Make sure your proxy/VPN is on and google.com opens in your browser.'))
     page.wait_for_timeout(2500)
     if 'consent.google' in page.url:
         for label in ('Reject all', 'Alle ablehnen', 'Tout refuser', 'Rifiuta tutto', 'Rechazar todo'):
@@ -181,9 +182,9 @@ def _open(page, url, settings, set_status, log, pno):
                 page.wait_for_timeout(2500)
                 break
     if br.is_google_captcha(page):
-        log(f'Google 在第 {pno} 页要求人机验证')
+        log(L(f'Google 在第 {pno} 页要求人机验证', f'Google asked for a CAPTCHA on page {pno}'))
         if not br.wait_for_human(page, settings, set_status):
-            raise RuntimeError(f'Google 在第 {pno} 页要求人机验证（检测到异常流量），未能通过。可在“设置”里勾选“遇到验证时弹出窗口”，或稍后再试、换一个代理节点。')
+            raise RuntimeError(L(f'Google 在第 {pno} 页要求人机验证（检测到异常流量），未能通过。可在“设置”里勾选“遇到验证时弹出窗口”，或稍后再试、换一个代理节点。', f'Google asked for a CAPTCHA on page {pno} (unusual traffic) and it was not solved. Turn on the manual CAPTCHA option in Settings, try again later, or switch proxy server.'))
         page.wait_for_timeout(2000)
     # 滚动到底部，加载底部广告
     for _ in range(4):
@@ -212,7 +213,7 @@ def collect(page, keyword, settings, job_dir, set_status, log, pages=5):
     loc, sections, page_notes, pages_done, organic = '', [], [], 0, []
     shot = None
     for pno in range(1, max(1, pages) + 1):
-        set_status(f'正在抓取 Google 搜索结果第 {pno}/{pages} 页')
+        set_status(L(f'正在抓取 Google 搜索结果第 {pno}/{pages} 页', f'Collecting Google results page {pno}/{pages}'))
         q = dict(base, start=str((pno - 1) * 10)) if pno > 1 else base
         purl = 'https://www.google.com/search?' + urllib.parse.urlencode(q)
         try:
@@ -269,10 +270,10 @@ def collect(page, keyword, settings, job_dir, set_status, log, pages=5):
                     prod['image'] = f'assets/shopping/{prod["id"]}.jpg'
                 shopping.append(prod)
                 n_new += 1
-        log(f'第 {pno} 页：新增 {n_new} 条广告')
+        log(L(f'第 {pno} 页：新增 {n_new} 条广告', f'page {pno}: {n_new} new ads'))
         # 没有下一页就停止
         if pno < pages and not page.query_selector('a#pnnext, a[aria-label="Next page"], a[aria-label="Next"]'):
-            page_notes.append(f'搜索结果只有 {pno} 页，没有更多页面')
+            page_notes.append(L(f'搜索结果只有 {pno} 页，没有更多页面', f'Only {pno} result page(s), no more pages'))
             break
         if pno < pages:
             page.wait_for_timeout(random.randint(2500, 5000))  # 翻页间隔，降低触发人机验证的概率
